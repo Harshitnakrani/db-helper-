@@ -6,13 +6,13 @@ An AI-powered chatbot that allows non-technical users (sales, marketing, busines
 
 ## 🚀 Features
 
-* Natural Language → SQL conversion
-* Tool-based AI Agent (NOT simple prompt-based)
-* Schema-aware querying (no hallucination)
-* Safe SQL execution (SELECT-only enforcement)
-* Chat-based UI
-* Dynamic schema exploration
-* Clean formatted responses
+* **Natural Language → SQL conversion**: Speak to your database in plain English.
+* **Tool-based AI Agent**: The LLM autonomously decides when to check the schema or execute a query.
+* **Schema-aware querying**: Dynamically fetches schema to ensure accurate, hallucination-free queries.
+* **Safe SQL execution**: Strictly enforces `SELECT`-only execution to prevent data mutation.
+* **Chat History & Context**: Maintains a persistent conversation history so the AI remembers your previous questions and answers.
+* **Minimal & Professional UI**: A clean, modern chat interface designed for the best user experience.
+* **Local Storage Configurations**: Database credentials and connection settings are securely saved to your browser's local storage so you don't need to re-enter them.
 
 ---
 
@@ -28,11 +28,11 @@ This project implements a **tool-using AI agent** with two core tools:
 ## 🏗️ Architecture
 
 ```
-Frontend (React + Vite)
+Frontend (React + Vite + TypeScript)
         ↓
-Backend (Node.js / TypeScript)
+Backend (Node.js + Express + TypeScript)
         ↓
-LLM (Groq)
+LLM (Groq API)
         ↓
 Tool Layer
    ├── get_schema
@@ -48,44 +48,25 @@ Database (PostgreSQL)
 ```
 zenity db helper/
 │
-├── backend/
+├── backend/                  # Node.js backend using Express & TypeScript
 │   ├── src/
-│   │   ├── controllers/
-│   │   │   └── chat.controller.ts
-│   │   ├── services/
-│   │   │   ├── agent.service.ts
-│   │   │   ├── db.service.ts
-│   │   │   ├── schema.service.ts
-│   │   │   └── llm.service.ts
-│   │   ├── tools/
-│   │   │   ├── getSchema.ts
-│   │   │   └── getData.ts
-│   │   ├── utils/
-│   │   │   ├── sqlValidator.ts
-│   │   │   └── formatter.ts
-│   │   ├── config/
-│   │   │   └── db.config.ts
-│   │   ├── types/
-│   │   │   └── tool.types.ts
-│   │   └── app.ts
-│   │
+│   │   ├── controllers/      # Route handlers
+│   │   ├── services/         # Core business logic (Agent, DB, Schema, LLM)
+│   │   ├── tools/            # AI Agent Tools
+│   │   ├── utils/            # Utilities (SQL formatters, validators)
+│   │   ├── types/            # TypeScript type definitions
+│   │   └── server.ts         # Server entry point
+│   ├── scripts/              # DB seeding scripts
 │   └── package.json
 │
-├── frontend/
+├── frontend/                 # React frontend using Vite
 │   ├── src/
-│   │   ├── components/
-│   │   │   ├── Chat.tsx
-│   │   │   ├── Message.tsx
-│   │   │   ├── Sidebar.tsx
-│   │   │   └── InputBox.tsx
-│   │   ├── pages/
-│   │   │   └── Home.tsx
-│   │   ├── hooks/
-│   │   │   └── useChat.ts
-│   │   ├── api/
-│   │   │   └── chat.ts
-│   │   └── main.tsx
-│   │
+│   │   ├── components/       # UI Components (Chat, Sidebar, InputBox, Message)
+│   │   ├── pages/            # Page layouts
+│   │   ├── hooks/            # Custom React hooks
+│   │   ├── api/              # Backend API integration layer
+│   │   ├── styles.css        # Minimal & professional modern UI styling
+│   │   └── main.tsx          # Application entry point
 │   └── package.json
 │
 └── README.md
@@ -97,13 +78,12 @@ zenity db helper/
 
 ### 🔹 Agent Flow
 
-1. User sends query
-2. LLM decides:
-
+1. User sends query along with chat history.
+2. LLM evaluates context and decides:
    * Needs schema? → call `get_schema`
    * Ready for query? → call `get_data`
-3. Backend executes tool
-4. LLM generates final response
+3. Backend executes tool against the user's database.
+4. LLM parses tool results and generates a final formatted response.
 
 ---
 
@@ -112,29 +92,9 @@ zenity db helper/
 **Purpose:** Fetch database schema dynamically
 
 **Input:**
-
-```
+```json
 {
-  "table": "optional"
-}
-```
-
-**Output:**
-
-```
-{
-  "tables": ["sales", "customers"]
-}
-```
-
-OR
-
-```
-{
-  "columns": [
-    { "name": "id", "type": "int" },
-    { "name": "amount", "type": "numeric" }
-  ]
+  "table": "optional_table_name"
 }
 ```
 
@@ -145,18 +105,9 @@ OR
 **Purpose:** Execute SQL queries safely
 
 **Input:**
-
-```
+```json
 {
   "query": "SELECT * FROM sales LIMIT 10"
-}
-```
-
-**Output:**
-
-```
-{
-  "rows": [...]
 }
 ```
 
@@ -164,32 +115,9 @@ OR
 
 ### 🔐 SQL Safety Rules
 
-* Only allow `SELECT`
-* Block:
-
-  * INSERT
-  * UPDATE
-  * DELETE
-  * DROP
-* Enforce `LIMIT 100`
-
----
-
-### 🗄️ Schema Extraction Queries
-
-**Tables:**
-
-```sql
-SELECT table_name FROM information_schema.tables WHERE table_schema='public';
-```
-
-**Columns:**
-
-```sql
-SELECT column_name, data_type 
-FROM information_schema.columns 
-WHERE table_name='your_table';
-```
+* Only allow `SELECT` statements.
+* Block: `INSERT`, `UPDATE`, `DELETE`, `DROP`, `ALTER`, `TRUNCATE`.
+* Enforces `LIMIT` clauses to prevent massive data dumps.
 
 ---
 
@@ -197,60 +125,41 @@ WHERE table_name='your_table';
 
 ### Tech Stack
 
-* React (Vite)
+* React (via Vite)
 * TypeScript
-
----
-
-### UI Layout
-
-```
------------------------------------
-| Sidebar | Chat Area             |
-|---------|-----------------------|
-| Tables  | User Input            |
-| History | AI Responses          |
------------------------------------
-```
-
----
+* Vanilla CSS with modern UI variables and Google Fonts (Inter)
 
 ### Core Components
 
-* Chat → Main conversation UI
-* Message → Individual messages
-* InputBox → User input
-* Sidebar → Tables / history
+* **Chat** → Main conversation UI with distinct user and assistant bubbles.
+* **Message** → Renders individual chat blocks safely.
+* **InputBox** → Sleek user input mechanism.
+* **Sidebar** → Manages dynamic database configuration variables synced with LocalStorage.
 
 ---
 
 ## 🔌 API Design
 
-### POST /chat
+### POST `/chat`
 
-**Request:**
-
-```
+**Request Body:**
+```json
 {
-  "message": "How much sales today?"
+  "message": "How much sales today?",
+  "dbConfig": {
+    "host": "localhost",
+    "port": 5432,
+    "user": "postgres",
+    "password": "password",
+    "database": "postgres",
+    "ssl": false
+  },
+  "history": [
+    { "role": "user", "content": "What tables do I have?" },
+    { "role": "assistant", "content": "You have a sales table." }
+  ]
 }
 ```
-
-**Response:**
-
-```
-{
-  "reply": "Total sales today is ₹1,20,000"
-}
-```
-
----
-
-## 🧠 LLM Integration
-
-* Use Groq
-* Tool calling enabled
-* System prompt defines behavior
 
 ---
 
@@ -258,52 +167,42 @@ WHERE table_name='your_table';
 
 ### 1. Clone repo
 
-```
+```bash
 git clone <repo-url>
 ```
 
 ### 2. Backend setup
 
-```
+```bash
 cd backend
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 ### 3. Frontend setup
 
-```
+```bash
 cd frontend
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 ---
 
 ## 🔥 Future Improvements
 
-* Charts & visualizations
-* Multi-database support
-* Authentication
-* Query history
-* Role-based access
+* Charts & data visualizations
+* Multi-database support (MySQL, SQL Server, etc.)
+* Authentication and session management
+* Role-based access control
 * Voice input
-
----
-
-## 💣 Key Learning Concepts
-
-* AI Agents
-* Tool Calling
-* RAG-like schema retrieval
-* SQL safety enforcement
-* System prompt engineering
+* Downloadable query reports (CSV/PDF)
 
 ---
 
 ## 🤝 Contribution
 
-PRs are welcome. Keep code clean and modular.
+PRs are welcome. Please ensure your code is modular, well-typed with TypeScript, and follows the existing design patterns.
 
 ---
 
@@ -315,4 +214,4 @@ MIT License
 
 ## 🚀 Final Note
 
-This project demonstrates a real-world AI system where LLMs interact with structured data safely and intell
+This project demonstrates a real-world AI system where LLMs interact with structured data safely and intelligently, providing actionable insights directly to non-technical end-users.
